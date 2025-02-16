@@ -31,13 +31,6 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 
 ---
 
-## TrainerDay Setup
-
-In your TrainerDay app or their website, go to the **Connections** section and enable the Dropbox integration.
-This will enable TrainerDay to put activities into your Dropbox account in the /Apps/TrainerDay folder.
-
----
-
 ## Dropbox Setup
 
 1. **Create a Dropbox App**  
@@ -60,6 +53,13 @@ This will enable TrainerDay to put activities into your Dropbox account in the /
    - Scroll down to the **OAuth 2** section in your app's settings.
    - Click **"Generate access token"**.
    - Copy and store it securely. This token will be used by the script to access your Dropbox.
+
+---
+
+## TrainerDay Setup
+
+In your TrainerDay app or their website, go to the **Connections** section and enable the Dropbox integration.
+This will enable TrainerDay to put activities into your Dropbox account in the /Apps/TrainerDay folder.
 
 ---
 
