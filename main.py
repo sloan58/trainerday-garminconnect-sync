@@ -166,15 +166,18 @@ def main():
     # List files in the Dropbox folder
     try:
         result = dbx.files_list_folder(DROPBOX_FOLDER)
+        activities = [entry for entry in result.entries if isinstance(entry, dropbox.files.FileMetadata)]
+        logger.info(f"Found {len(activities)} activities in Dropbox folder '{DROPBOX_FOLDER}'.")
     except Exception as e:
         logger.error("Error listing Dropbox folder '%s': %s", DROPBOX_FOLDER, e)
         return
 
     # Process each file
-    for entry in result.entries:
-        if isinstance(entry, dropbox.files.FileMetadata):
-            process_file(dbx, garmin, entry, local_dir=download_dir)
+    for activity in activities:
+        if isinstance(activity, dropbox.files.FileMetadata):
+            process_file(dbx, garmin, activity, local_dir=download_dir)
 
+    logger.info("Finished processing files.")
 
 if __name__ == "__main__":
     main()
