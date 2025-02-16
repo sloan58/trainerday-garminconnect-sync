@@ -11,8 +11,8 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 ## Table of Contents
 
 1. [Requirements](#requirements)
-2. [TrainerDay Setup](#trainerday-setup)
-3. [Dropbox Setup](#dropbox-setup)  
+2. [Dropbox Setup](#dropbox-setup)  
+3. [TrainerDay Setup](#trainerday-setup)
 4. [Garmin Setup](#garmin-setup)  
 5. [Environment Variables](#environment-variables)  
 6. [Installation](#installation)  
