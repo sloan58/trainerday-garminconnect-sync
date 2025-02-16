@@ -94,8 +94,8 @@ This script reads credentials and configuration from environment variables. You 
   Determines how files are handled after a successful (or duplicate) upload to Garmin.  
   Possible values:
   - `move` — Move files from `/Apps/TrainerDay` to `/Apps/TrainerDay/Processed`.
-  - `delete` — Delete files from Dropbox entirely.  
-  Default is `delete`.
+  - `delete` — Delete files from Dropbox entirely.
+  
 
 - **`GARMINTOKENS`** and **`GARMINTOKENS_BASE64`**  
   Paths where the Garmin tokens are cached. Defaults are:
@@ -135,9 +135,7 @@ GARMINTOKENS_BASE64=/Users/Me/.garminconnect_base64
 ## Usage
 
 1. **Run the Script**  
-   python main.py  
-
-   (Assuming the script is named `main.py` or similar.)
+   python main.py
 
 2. **What Happens**  
    - The script connects to Dropbox using `DROPBOX_ACCESS_TOKEN`.
