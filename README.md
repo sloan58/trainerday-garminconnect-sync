@@ -1,20 +1,24 @@
-# TrainerDay -> Garmin Uploader CLI
+# TrainerDay -> Garmin Connect Sync
+
+Currently TrainerDay rides do not get synced to Garmin Connect.  To work around this, we can enable TrainerDay to send activities
+to Dropbox and then use the Dropbox and Garmin Connect API's to put the activities in Garmin Connect.
 
 This Python CLI app downloads `.tcx` files from the Dropbox folder created by TrainerDay and uploads them to Garmin Connect.  
-After uploading, it either **moves** or **deletes** the files from Dropbox, depending on the user's chosen strategy.
+After uploading, it either **moves** or **deletes** the files from Dropbox, depending on your chosen strategy.
 
 ---
 
 ## Table of Contents
 
-1. [Requirements](#requirements)  
-2. [Dropbox Setup](#dropbox-setup)  
-3. [Garmin Setup](#garmin-setup)  
-4. [Environment Variables](#environment-variables)  
-5. [Installation](#installation)  
-6. [Usage](#usage)  
-7. [How It Works](#how-it-works)  
-8. [Troubleshooting](#troubleshooting)
+1. [Requirements](#requirements)
+2. [TrainerDay Setup](#trainerday)
+3. [Dropbox Setup](#dropbox-setup)  
+4. [Garmin Setup](#garmin-setup)  
+5. [Environment Variables](#environment-variables)  
+6. [Installation](#installation)  
+7. [Usage](#usage)  
+8. [How It Works](#how-it-works)  
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -24,6 +28,13 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 - **Pip** or similar package manager.
 - A Dropbox account with a Dropbox App configured for **Scoped Access**.
 - A Garmin Connect account (with valid credentials).
+
+---
+
+## TrainerDay Setup
+
+In your TrainerDay app or their website, go to the **Connections** section and enable the Dropbox integration.
+This will enable TrainerDay to put activities into your Dropbox account in the /Apps/TrainerDay folder.
 
 ---
 
