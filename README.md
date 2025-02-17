@@ -92,7 +92,7 @@ This script reads credentials and configuration from environment variables. You 
 - **`POST_UPLOAD_STRATEGY`**  
   Determines how files are handled after a successful (or duplicate) upload to Garmin.  
   Possible values:
-  - `move` — Move files from `/Apps/TrainerDay` to `/Apps/TrainerDay/Processed`.
+  - `move` — Move files from `/Apps/TrainerDay` to `/Apps/TrainerDay/Processed` (default).
   - `delete` — Delete files from Dropbox entirely.
   
 

@@ -43,7 +43,7 @@ GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
 GARMINTOKENS = os.getenv("GARMINTOKENS") or "~/.garminconnect"
 GARMINTOKENS_BASE64 = os.getenv("GARMINTOKENS_BASE64") or "~/.garminconnect_base64"
 DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
-POST_UPLOAD_STRATEGY = os.getenv("POST_UPLOAD_STRATEGY", "delete").lower()  # "move" or "delete"
+POST_UPLOAD_STRATEGY = os.getenv("POST_UPLOAD_STRATEGY", "move").lower()  # "move" or "delete"
 
 # Dropbox folder settings
 DROPBOX_FOLDER = "/Apps/TrainerDay"
