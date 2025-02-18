@@ -9,15 +9,16 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 
 ## Table of Contents
 
-1. [Requirements](#requirements)
+1. [Requirements](#requirements)  
 2. [Dropbox Setup](#dropbox-setup)  
-3. [TrainerDay Setup](#trainerday-setup)
+3. [TrainerDay Setup](#trainerday-setup)  
 4. [Garmin Setup](#garmin-setup)  
 5. [Environment Variables](#environment-variables)  
 6. [Installation](#installation)  
 7. [Usage](#usage)  
 8. [How It Works](#how-it-works)  
-9. [Troubleshooting](#troubleshooting)
+9. [Troubleshooting](#troubleshooting)  
+10. [Scheduling a Cron Job](#scheduling-a-cron-job)
 
 ---
 
@@ -35,30 +36,29 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 1. **Create a Dropbox App**  
    - Go to [Dropbox App Console](https://www.dropbox.com/developers/apps).
    - Click **"Create app"** and choose **Scoped access**.
-   - Select **"Full Dropbox"** to gain access to the TrainerDay folder.
-   
+   - Select **"Full Dropbox"** to ensure you can access the `/Apps/TrainerDay` folder created by TrainerDay.
 
-2. **Select Permissions**  
-   Before generating your token, **make sure** you select at least the following permissions:
+2. **Configure Permissions**  
+   Under **"Permissions"**, ensure you enable:
    - `files.metadata.read`
    - `files.metadata.write`
    - `files.content.read`
    - `files.content.write`
 
-   > **Important**: These scopes must be checked **before** you generate the access token.  
-   > You **cannot** upgrade or regenerate the same token later if you forget to include these scopes.
+3. **Set Redirect URIs (Optional)**  
+   If you plan on using a redirect-based OAuth flow, set an appropriate redirect URI.  
+   However, this script uses a **no-redirect** OAuth flow by default (it prints a URL, you authorize, then paste back a code).
 
-3. **Select Settings and Generate Your Access Token**  
-   - Scroll down to the **OAuth 2** section in your app's settings.
-   - Click **"Generate access token"**.
-   - Copy and store it securely. This token will be used by the script to access your Dropbox.
+4. **Store Your App Key & Secret**  
+   - In your app’s settings, locate your **App key** and **App secret**.  
+   - You’ll set them as `DROPBOX_APP_KEY` and `DROPBOX_APP_SECRET` environment variables (see [Environment Variables](#environment-variables)).
 
 ---
 
 ## TrainerDay Setup
 
-In your TrainerDay app or their website, go to the **Connections** section and enable the Dropbox integration.
-This will enable TrainerDay to put activities into your Dropbox account in the /Apps/TrainerDay folder.
+In your TrainerDay app or their website, go to the **Connections** section and enable the Dropbox integration.  
+This will enable TrainerDay to put `.tcx` files into your Dropbox account in the `/Apps/TrainerDay` folder.
 
 ---
 
@@ -78,12 +78,12 @@ This script reads credentials and configuration from environment variables. You 
 
 **Required Variables:**
 
-- **`DROPBOX_ACCESS_TOKEN`**  
-  Your Dropbox API token (with the correct scopes).
-
+- **`DROPBOX_APP_KEY`**  
+  Your Dropbox App Key (from the App Console).
+- **`DROPBOX_APP_SECRET`**  
+  Your Dropbox App Secret (from the App Console).
 - **`GARMIN_USERNAME`**  
   Your Garmin Connect username (usually an email).
-
 - **`GARMIN_PASSWORD`**  
   Your Garmin Connect password.
 
@@ -94,7 +94,10 @@ This script reads credentials and configuration from environment variables. You 
   Possible values:
   - `move` — Move files from `/Apps/TrainerDay` to `/Apps/TrainerDay/Processed` (default).
   - `delete` — Delete files from Dropbox entirely.
-  
+
+- **`DROPBOX_TOKEN_FILE`**  
+  The path (supports `~`) where the script will store and read your Dropbox refresh tokens.  
+  Defaults to `~/.dropbox_token.json`.
 
 - **`GARMINTOKENS`** and **`GARMINTOKENS_BASE64`**  
   Paths where the Garmin tokens are cached. Defaults are:
@@ -103,12 +106,16 @@ This script reads credentials and configuration from environment variables. You 
 
 **Example `.env` file:**
 
-DROPBOX_ACCESS_TOKEN=sl.ABCD1234XYZ  
-GARMIN_USERNAME=myemail@example.com  
-GARMIN_PASSWORD=MyGarminPassword  
-POST_UPLOAD_STRATEGY=move  
-GARMINTOKENS=/Users/Me/.garminconnect  
-GARMINTOKENS_BASE64=/Users/Me/.garminconnect_base64  
+```
+DROPBOX_APP_KEY=abc123
+DROPBOX_APP_SECRET=def456
+DROPBOX_TOKEN_FILE=~/.dropbox_token.json
+GARMIN_USERNAME=myemail@example.com
+GARMIN_PASSWORD=MyGarminPassword
+GARMINTOKENS=~/.garminconnect
+GARMINTOKENS_BASE64=~/.garminconnect_base64
+POST_UPLOAD_STRATEGY=move
+```
 
 ---
 
@@ -117,28 +124,43 @@ GARMINTOKENS_BASE64=/Users/Me/.garminconnect_base64
 1. **Clone or Download** this repository to your local machine.
 
 2. **Install Dependencies (create virtual env if desired)**  
+   ```bash
    pip install -r requirements.txt
+   ```
    or  
-   pip install dropbox python-dotenv requests garminconnect garth  
+   ```bash
+   pip install dropbox python-dotenv requests garminconnect garth
+   ```
 
 3. **Set Environment Variables**  
    - Either create a `.env` file with the values mentioned above.
-   - Or export them directly in your shell:  
-     export DROPBOX_ACCESS_TOKEN="sl.ABCD1234XYZ"  
-     export GARMIN_USERNAME="myemail@example.com"  
-     export GARMIN_PASSWORD="MyGarminPassword"  
-     export POST_UPLOAD_STRATEGY="move"  
+   - Or export them directly in your shell:
+     ```bash
+     export DROPBOX_APP_KEY="abc123"
+     export DROPBOX_APP_SECRET="def456"
+     export GARMIN_USERNAME="myemail@example.com"
+     export GARMIN_PASSWORD="MyGarminPassword"
+     export POST_UPLOAD_STRATEGY="move"
+     ```
+4. **First-Time Authorization**  
+   - On your first run, the script will detect no local token file for Dropbox.  
+   - It will print a URL for you to open in your browser.  
+   - Approve access to your Dropbox, then copy/paste the authorization code back into the script.  
+   - The script will store a refresh token in `~/.dropbox_token.json` (or the path you set in `DROPBOX_TOKEN_FILE`).  
+   - Subsequent runs will automatically refresh your token without any user intervention.
 
 ---
 
 ## Usage
 
 1. **Run the Script**  
+   ```bash
    python main.py
+   ```
 
 2. **What Happens**  
-   - The script connects to Dropbox using `DROPBOX_ACCESS_TOKEN`.
-   - It lists all files in `/Apps/TrainerDay`.
+   - The script uses your Dropbox **refresh token** to obtain a short-lived access token as needed.  
+   - It lists all files in `/Apps/TrainerDay`.  
    - For each file:
      - Downloads it locally into a `downloads` folder.
      - Uploads it to Garmin Connect.
@@ -147,23 +169,26 @@ GARMINTOKENS_BASE64=/Users/Me/.garminconnect_base64
        - **delete**: Deletes file from Dropbox
 
 3. **Logging**  
-   The script will log activity in the logs folder for the past 7 days as well as the console.
+   The script will log activity in the `logs` folder for the past 7 days, as well as the console.
 
 ---
 
 ## How It Works
 
-1. **Garmin Authentication**  
+1. **Dropbox OAuth Flow**  
+   - On first run, you’ll be prompted to visit a URL and paste back an authorization code.  
+   - The script saves a **refresh token** in a JSON file (default `~/.dropbox_token.json`).  
+   - Future runs automatically refresh short-lived tokens behind the scenes.
+
+2. **Garmin Authentication**  
    - The script tries to use cached tokens from `GARMINTOKENS`.  
-   - If no token file is found or if an error occurs, it logs in using `GARMIN_USERNAME` and `GARMIN_PASSWORD`, then stores new tokens.
+   - If no token file is found or if an error occurs, it logs in using `GARMIN_USERNAME` and `GARMIN_PASSWORD`, then stores new tokens locally.
 
-2. **Dropbox File Operations**  
-   - `dropbox.Dropbox` is initialized with `DROPBOX_ACCESS_TOKEN`.
-   - `files_list_folder` is called on `/Apps/TrainerDay`.
-   - For each file, `files_download` is used to pull the `.tcx` file locally.
-   - After uploading to Garmin, `files_move_v2` or `files_delete_v2` is called, depending on your strategy.
+3. **Dropbox File Operations**  
+   - The script lists files in `/Apps/TrainerDay`, downloads each `.tcx`, and uploads to Garmin Connect.  
+   - After upload, the file is either moved or deleted from Dropbox (depending on `POST_UPLOAD_STRATEGY`).
 
-3. **Duplicate Activity Handling**  
+4. **Duplicate Activity Handling**  
    - If Garmin returns an HTTP 409 error, the script interprets that as a duplicate activity.  
    - The script logs that the activity already exists and proceeds with the post-upload strategy (move/delete).
 
@@ -171,20 +196,22 @@ GARMINTOKENS_BASE64=/Users/Me/.garminconnect_base64
 
 ## Troubleshooting
 
+- **Missing or Invalid OAuth**:  
+  If you skip the authorization step or revoke the app in Dropbox, you may need to delete your local token file (`~/.dropbox_token.json`) and re-run the script to generate a new refresh token.
+
 - **Token Scopes**:  
-  If you see errors like `AuthError('missing_scope', ...)`, it usually means your Dropbox token does not have the correct permissions. Make sure you selected `files.metadata.read`, `files.metadata.write`, `files.content.read`, and `files.content.write` **before** generating the token. You **cannot** add scopes to an existing token after it’s created.
+  If you see errors like `AuthError('missing_scope', ...)`, it usually means your Dropbox app is missing required permissions. Make sure you selected the correct scopes **before** using the app in the script.
 
 - **Garmin Authentication**:  
   If Garmin credentials fail, ensure your `GARMIN_USERNAME` and `GARMIN_PASSWORD` are correct. Also, watch for multi-factor authentication requirements that might not be supported by this script.
-
-- **Permission Denied**:  
-  If you’re using a folder outside of `/Apps/TrainerDay` with an “App folder” permission, your Dropbox app won’t have access. Use the correct path or set your app to **Full Dropbox** if needed.
 
 - **Local File Overwrites**:  
   The script overwrites any existing file with the same name in the local `downloads` folder. Adjust logic if you want to rename or skip duplicates locally.
 
 - **Unexpected Errors**:  
-  Check the console logs for stack traces. You can enable more verbose logging by editing the `logging.basicConfig(level=logging.INFO)` line to `logging.DEBUG`.
+  Check the console logs or `logs/app.log` for stack traces. You can enable more verbose logging by editing `logging.basicConfig(level=logging.INFO)` to `logging.DEBUG`.
+
+---
 
 ## Scheduling a Cron Job
 

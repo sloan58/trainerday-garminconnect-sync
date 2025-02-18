@@ -1,8 +1,10 @@
 import logging.handlers
 import os
+import json
+from datetime import datetime
 
-import dropbox
 import requests
+import dropbox
 from dotenv import load_dotenv
 from garminconnect import Garmin, GarminConnectAuthenticationError
 from garth.exc import GarthHTTPError
@@ -18,9 +20,9 @@ os.makedirs("logs", exist_ok=True)
 # Rotate logs daily and keep the last 7 days
 file_handler = logging.handlers.TimedRotatingFileHandler(
     filename="logs/app.log",
-    when="D",  # Rotate every day
-    interval=1,  # 1 day interval
-    backupCount=7  # Keep 7 days of logs
+    when="D",   # Rotate every day
+    interval=1, # 1 day interval
+    backupCount=7
 )
 log_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)s")
 file_handler.setFormatter(log_formatter)
@@ -42,14 +44,24 @@ GARMIN_USERNAME = os.getenv("GARMIN_USERNAME")
 GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
 GARMINTOKENS = os.getenv("GARMINTOKENS") or "~/.garminconnect"
 GARMINTOKENS_BASE64 = os.getenv("GARMINTOKENS_BASE64") or "~/.garminconnect_base64"
-DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
+
+# Dropbox OAuth settings
+DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
+DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
+DROPBOX_TOKEN_FILE = os.getenv("DROPBOX_TOKEN_FILE", "~/.dropbox_token.json")
+# Expand the user path once and store it here:
+DROPBOX_TOKEN_FILEPATH = os.path.expanduser(DROPBOX_TOKEN_FILE)
+
+# Post-upload strategy
 POST_UPLOAD_STRATEGY = os.getenv("POST_UPLOAD_STRATEGY", "move").lower()  # "move" or "delete"
 
 # Dropbox folder settings
 DROPBOX_FOLDER = "/Apps/TrainerDay"
 PROCESSED_FOLDER = DROPBOX_FOLDER + "/Processed"
 
-
+# ------------------------------------------------------------------------------
+# Garmin Initialization
+# ------------------------------------------------------------------------------
 def init_garmin_api():
     """Initializes the Garmin API. If a token file exists, use it; otherwise, login and dump a new token."""
     try:
@@ -65,16 +77,94 @@ def init_garmin_api():
             with open(tokenstore_path, "w") as token_file:
                 token_file.write(token_base64)
         except (
-                FileNotFoundError,
-                GarthHTTPError,
-                GarminConnectAuthenticationError,
-                requests.exceptions.HTTPError,
+            FileNotFoundError,
+            GarthHTTPError,
+            GarminConnectAuthenticationError,
+            requests.exceptions.HTTPError,
         ) as err:
             logger.error("Garmin API init error: %s", err)
             return None
     return garmin
 
+# ------------------------------------------------------------------------------
+# Dropbox OAuth
+# ------------------------------------------------------------------------------
+def first_time_dropbox_oauth():
+    """
+    Prompts the user to authorize this app with Dropbox (no-redirect flow).
+    Requests offline access (refresh token) and saves the tokens to DROPBOX_TOKEN_FILEPATH.
+    """
+    flow = dropbox.DropboxOAuth2FlowNoRedirect(
+        consumer_key=DROPBOX_APP_KEY,
+        consumer_secret=DROPBOX_APP_SECRET,
+        token_access_type='offline'
+    )
 
+    authorize_url = flow.start()
+    logger.info("1. Go to: %s", authorize_url)
+    logger.info("2. Click 'Allow' (you may need to log in).")
+    logger.info("3. Copy the authorization code.")
+    auth_code = input("Enter the authorization code here: ").strip()
+
+    oauth_result = flow.finish(auth_code)
+
+    # Convert expires_at to a numeric timestamp if it's a datetime object
+    expires_at_value = oauth_result.expires_at
+    if isinstance(expires_at_value, datetime):
+        expires_at_value = expires_at_value.timestamp()
+
+    tokens = {
+        "access_token": oauth_result.access_token,
+        "refresh_token": oauth_result.refresh_token,
+        "expires_at": expires_at_value,
+    }
+
+    with open(DROPBOX_TOKEN_FILEPATH, "w") as f:
+        json.dump(tokens, f, indent=2)
+
+    logger.info("Dropbox OAuth tokens saved to %s", DROPBOX_TOKEN_FILEPATH)
+    return tokens
+
+def load_dropbox_tokens():
+    """Load Dropbox tokens from the local JSON file, if it exists."""
+    if not os.path.exists(DROPBOX_TOKEN_FILEPATH):
+        return None
+    try:
+        with open(DROPBOX_TOKEN_FILEPATH, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error("Error reading token file '%s': %s", DROPBOX_TOKEN_FILEPATH, e)
+        return None
+
+def init_dropbox_api():
+    """
+    Initializes a Dropbox client using either:
+    1) Existing tokens from DROPBOX_TOKEN_FILEPATH, or
+    2) A first-time OAuth flow if no tokens are found.
+    """
+    if not DROPBOX_APP_KEY or not DROPBOX_APP_SECRET:
+        logger.error("DROPBOX_APP_KEY or DROPBOX_APP_SECRET is not set. Cannot proceed with OAuth.")
+        return None
+
+    tokens = load_dropbox_tokens()
+    if not tokens:
+        logger.info("No Dropbox tokens found. Running first-time OAuth flow...")
+        tokens = first_time_dropbox_oauth()
+
+    # Create a Dropbox client with refresh token support
+    dbx = dropbox.Dropbox(
+        oauth2_access_token=tokens["access_token"],
+        oauth2_refresh_token=tokens["refresh_token"],
+        app_key=DROPBOX_APP_KEY,
+        app_secret=DROPBOX_APP_SECRET
+    )
+
+    # The SDK will automatically refresh short-lived tokens as needed.
+    return dbx
+
+# ------------------------------------------------------------------------------
+# Main Logic
+# ------------------------------------------------------------------------------
 def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
     """
     Downloads a file from Dropbox, uploads it to Garmin, and then
@@ -87,7 +177,7 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
 
     # Download file from Dropbox
     try:
-        metadata, response = dbx.files_download(file_path)
+        _, response = dbx.files_download(file_path)
         with open(local_file, "wb") as f:
             f.write(response.content)
         logger.info("Downloaded '%s' to '%s'", file_name, local_file)
@@ -143,14 +233,13 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
     else:
         logger.error("Unknown POST_UPLOAD_STRATEGY: %s", POST_UPLOAD_STRATEGY)
 
-
 def main():
-    if DROPBOX_ACCESS_TOKEN is None:
-        logger.error("DROPBOX_ACCESS_TOKEN not set in environment.")
+    # Initialize Dropbox via OAuth
+    dbx = init_dropbox_api()
+    if not dbx:
+        logger.error("Failed to initialize Dropbox API.")
         return
 
-    # Initialize Dropbox client
-    dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
     logger.info("Connected to Dropbox.")
 
     # Initialize Garmin API
@@ -174,8 +263,7 @@ def main():
 
     # Process each file
     for activity in activities:
-        if isinstance(activity, dropbox.files.FileMetadata):
-            process_file(dbx, garmin, activity, local_dir=download_dir)
+        process_file(dbx, garmin, activity, local_dir=download_dir)
 
     logger.info("Finished processing files.")
 
