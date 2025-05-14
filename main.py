@@ -43,7 +43,7 @@ logger.addHandler(console_handler)
 GARMIN_USERNAME = os.getenv("GARMIN_USERNAME")
 GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
 GARMINTOKENS = ".garminconnect"
-GARMINTOKENS_BASE64 = ".garminconnect_base64"
+GARMINTOKENS_BASE64 = os.path.join(GARMINTOKENS, "garminconnect_base64")
 
 # Dropbox OAuth settings
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")

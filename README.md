@@ -134,7 +134,6 @@ POST_UPLOAD_STRATEGY=move
    - On your first run, the script will detect no local token file for Dropbox.  
    - It will print a URL for you to open in your browser.  
    - Approve access to your Dropbox, then copy/paste the authorization code back into the script.  
-   - The script will store a refresh token in `~/.dropbox_token.json` (or the path you set in `DROPBOX_TOKEN_FILE`).  
    - Subsequent runs will automatically refresh your token without any user intervention.
 
 ---
@@ -165,12 +164,12 @@ POST_UPLOAD_STRATEGY=move
 
 1. **Dropbox OAuth Flow**  
    - On first run, you’ll be prompted to visit a URL and paste back an authorization code.  
-   - The script saves a **refresh token** in a JSON file (default `~/.dropbox_token.json`).  
+   - The script saves a **refresh token** in a JSON file (`./.dropbox_token.json`).  
    - Future runs automatically refresh short-lived tokens behind the scenes.
 
 2. **Garmin Authentication**  
-   - The script tries to use cached tokens from `GARMINTOKENS`.  
-   - If no token file is found or if an error occurs, it logs in using `GARMIN_USERNAME` and `GARMIN_PASSWORD`, then stores new tokens locally.
+   - The script tries to use cached tokens but if no token file is found or if an error occurs, it logs in using 
+     `GARMIN_USERNAME` and `GARMIN_PASSWORD`, then stores new tokens locally (`./.garminconnect/`).
 
 3. **Dropbox File Operations**  
    - The script lists files in `/Apps/TrainerDay`, downloads each `.tcx`, and uploads to Garmin Connect.  
