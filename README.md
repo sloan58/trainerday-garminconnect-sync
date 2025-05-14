@@ -95,16 +95,11 @@ This script reads credentials and configuration from environment variables. You 
   - `move` — Move files from `/Apps/TrainerDay` to `/Apps/TrainerDay/Processed` (default).
   - `delete` — Delete files from Dropbox entirely.
 
-- **`DROPBOX_TOKEN_FILE`**  
-  The path (supports `~`) where the script will store and read your Dropbox refresh tokens.  
-  Defaults to `~/.dropbox_token.json`.
-
 **Example `.env` file:**
 
 ```
 DROPBOX_APP_KEY=abc123
 DROPBOX_APP_SECRET=def456
-DROPBOX_TOKEN_FILE=~/.dropbox_token.json
 GARMIN_USERNAME=myemail@example.com
 GARMIN_PASSWORD=MyGarminPassword
 POST_UPLOAD_STRATEGY=move

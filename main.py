@@ -48,9 +48,7 @@ GARMINTOKENS_BASE64 = ".garminconnect_base64"
 # Dropbox OAuth settings
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET")
-DROPBOX_TOKEN_FILE = os.getenv("DROPBOX_TOKEN_FILE", "~/.dropbox_token.json")
-# Expand the user path once and store it here:
-DROPBOX_TOKEN_FILEPATH = os.path.expanduser(DROPBOX_TOKEN_FILE)
+DROPBOX_TOKEN_FILEPATH = ".dropbox_token.json"
 
 # Post-upload strategy
 POST_UPLOAD_STRATEGY = os.getenv("POST_UPLOAD_STRATEGY", "move").lower()  # "move" or "delete"
@@ -74,8 +72,7 @@ def init_garmin_api():
             garmin.login()
             garmin.garth.dump(GARMINTOKENS)
             token_base64 = garmin.garth.dumps()
-            tokenstore_path = os.path.expanduser(GARMINTOKENS_BASE64)
-            with open(tokenstore_path, "w") as token_file:
+            with open(GARMINTOKENS_BASE64, "w") as token_file:
                 token_file.write(token_base64)
         except (
             FileNotFoundError,
