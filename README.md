@@ -99,11 +99,6 @@ This script reads credentials and configuration from environment variables. You 
   The path (supports `~`) where the script will store and read your Dropbox refresh tokens.  
   Defaults to `~/.dropbox_token.json`.
 
-- **`GARMINTOKENS`** and **`GARMINTOKENS_BASE64`**  
-  Paths where the Garmin tokens are cached. Defaults are:
-  - `~/.garminconnect`
-  - `~/.garminconnect_base64`
-
 **Example `.env` file:**
 
 ```
@@ -112,8 +107,6 @@ DROPBOX_APP_SECRET=def456
 DROPBOX_TOKEN_FILE=~/.dropbox_token.json
 GARMIN_USERNAME=myemail@example.com
 GARMIN_PASSWORD=MyGarminPassword
-GARMINTOKENS=~/.garminconnect
-GARMINTOKENS_BASE64=~/.garminconnect_base64
 POST_UPLOAD_STRATEGY=move
 ```
 

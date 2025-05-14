@@ -42,8 +42,8 @@ logger.addHandler(console_handler)
 # ------------------------------------------------------------------------------
 GARMIN_USERNAME = os.getenv("GARMIN_USERNAME")
 GARMIN_PASSWORD = os.getenv("GARMIN_PASSWORD")
-GARMINTOKENS = os.getenv("GARMINTOKENS") or "~/.garminconnect"
-GARMINTOKENS_BASE64 = os.getenv("GARMINTOKENS_BASE64") or "~/.garminconnect_base64"
+GARMINTOKENS = ".garminconnect"
+GARMINTOKENS_BASE64 = ".garminconnect_base64"
 
 # Dropbox OAuth settings
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY")
@@ -69,6 +69,7 @@ def init_garmin_api():
         garmin.login(GARMINTOKENS)
     except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError):
         try:
+            os.makedirs(GARMINTOKENS, exist_ok=True)
             garmin = Garmin(email=GARMIN_USERNAME, password=GARMIN_PASSWORD, is_cn=False)
             garmin.login()
             garmin.garth.dump(GARMINTOKENS)

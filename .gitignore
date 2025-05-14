@@ -2,3 +2,5 @@
 .idea/
 .env
 .guploadrc
+.garminconnect
+.garminconnect_base64
