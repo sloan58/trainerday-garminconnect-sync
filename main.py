@@ -1,10 +1,10 @@
+import json
 import logging.handlers
 import os
-import json
 from datetime import datetime
 
-import requests
 import dropbox
+import requests
 from dotenv import load_dotenv
 from garminconnect import Garmin, GarminConnectAuthenticationError
 from garth.exc import GarthHTTPError
@@ -20,8 +20,8 @@ os.makedirs("logs", exist_ok=True)
 # Rotate logs daily and keep the last 7 days
 file_handler = logging.handlers.TimedRotatingFileHandler(
     filename="logs/app.log",
-    when="D",   # Rotate every day
-    interval=1, # 1 day interval
+    when="D",  # Rotate every day
+    interval=1,  # 1-day interval
     backupCount=7
 )
 log_formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s - %(message)s")
@@ -57,6 +57,7 @@ POST_UPLOAD_STRATEGY = os.getenv("POST_UPLOAD_STRATEGY", "move").lower()  # "mov
 DROPBOX_FOLDER = "/Apps/TrainerDay"
 PROCESSED_FOLDER = DROPBOX_FOLDER + "/Processed"
 
+
 # ------------------------------------------------------------------------------
 # Garmin Initialization
 # ------------------------------------------------------------------------------
@@ -68,21 +69,28 @@ def init_garmin_api():
     except (FileNotFoundError, GarthHTTPError, GarminConnectAuthenticationError):
         try:
             os.makedirs(GARMINTOKENS, exist_ok=True)
-            garmin = Garmin(email=GARMIN_USERNAME, password=GARMIN_PASSWORD, is_cn=False)
-            garmin.login()
+            garmin = Garmin(email=GARMIN_USERNAME, password=GARMIN_PASSWORD, is_cn=False, return_on_mfa=True)
+
+            result1, result2 = garmin.login()
+
+            if result1 == "needs_mfa":
+                mfa_code = input("Please enter your MFA code: ")
+                garmin.resume_login(result2, mfa_code)
+
             garmin.garth.dump(GARMINTOKENS)
             token_base64 = garmin.garth.dumps()
             with open(GARMINTOKENS_BASE64, "w") as token_file:
                 token_file.write(token_base64)
         except (
-            FileNotFoundError,
-            GarthHTTPError,
-            GarminConnectAuthenticationError,
-            requests.exceptions.HTTPError,
+                FileNotFoundError,
+                GarthHTTPError,
+                GarminConnectAuthenticationError,
+                requests.exceptions.HTTPError,
         ) as err:
             logger.error("Garmin API init error: %s", err)
             return None
     return garmin
+
 
 # ------------------------------------------------------------------------------
 # Dropbox OAuth
@@ -123,6 +131,7 @@ def first_time_dropbox_oauth():
     logger.info("Dropbox OAuth tokens saved to %s", DROPBOX_TOKEN_FILEPATH)
     return tokens
 
+
 def load_dropbox_tokens():
     """Load Dropbox tokens from the local JSON file, if it exists."""
     if not os.path.exists(DROPBOX_TOKEN_FILEPATH):
@@ -133,6 +142,7 @@ def load_dropbox_tokens():
     except Exception as e:
         logger.error("Error reading token file '%s': %s", DROPBOX_TOKEN_FILEPATH, e)
         return None
+
 
 def init_dropbox_api():
     """
@@ -159,6 +169,7 @@ def init_dropbox_api():
 
     # The SDK will automatically refresh short-lived tokens as needed.
     return dbx
+
 
 # ------------------------------------------------------------------------------
 # Main Logic
@@ -231,6 +242,7 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
     else:
         logger.error("Unknown POST_UPLOAD_STRATEGY: %s", POST_UPLOAD_STRATEGY)
 
+
 def main():
     # Initialize Dropbox via OAuth
     dbx = init_dropbox_api()
@@ -264,6 +276,7 @@ def main():
         process_file(dbx, garmin, activity, local_dir=download_dir)
 
     logger.info("Finished processing files.")
+
 
 if __name__ == "__main__":
     main()
