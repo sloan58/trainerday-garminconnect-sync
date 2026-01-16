@@ -1,6 +1,7 @@
 import json
 import logging.handlers
 import os
+import time
 from datetime import datetime
 
 import dropbox
@@ -184,7 +185,7 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
     local_file = os.path.join(local_dir, file_name)
     logger.info("Processing file: %s", file_name)
 
-    # Download file from Dropbox
+    # Download a file from Dropbox
     try:
         _, response = dbx.files_download(file_path)
         with open(local_file, "wb") as f:
@@ -199,7 +200,7 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
         garmin.upload_activity(local_file)
         logger.info("Uploaded '%s' to Garmin.", file_name)
     except GarthHTTPError as e:
-        # Determine if error is due to duplicate upload (HTTP 409)
+        # Determine if the error is due to duplicate upload (HTTP 409)
         status_code = None
         if hasattr(e, "response") and e.response is not None:
             status_code = e.response.status_code
@@ -212,6 +213,40 @@ def process_file(dbx, garmin, file_metadata, local_dir="downloads"):
         else:
             logger.error("Error uploading '%s': %s", file_name, e)
             return
+
+    # Rename the file in Garmin
+    try:
+        # 1. Wait 5 seconds for Garmin to finish processing the upload
+        time.sleep(5)
+
+        # 2. Ask Garmin for the newest activity to get its ID
+        activities = garmin.get_activities(0, 1)  # Get the 1 latest activity
+
+        if activities:
+            last_activity = activities[0]
+            activity_id = last_activity['activityId']
+
+            # 3. Clean up the name
+            # Example: "2026-01-16 17-33-24 - Sweet Spot B #1.tcx" -> "Sweet Spot B #1"
+            activity_name = file_name.replace(".tcx", "")
+            if " - " in activity_name:
+                activity_name = activity_name.split(" - ", 1)[1]
+
+            logger.info("Renaming activity %s to '%s'...", activity_id, activity_name)
+
+            # 4. Update the filename
+            rename_payload = {"activityId": activity_id, "activityName": activity_name}
+            garmin.connectapi(
+                f"/activity-service/activity/{activity_id}",
+                method="PUT",
+                json=rename_payload
+            )
+            logger.info("Rename successful!")
+        else:
+            logger.warning("Could not find the latest activity to rename.")
+
+    except Exception as rename_error:
+        logger.error("Failed to rename activity: %s", rename_error)
 
     # Post-upload processing in Dropbox: Move or Delete
     if POST_UPLOAD_STRATEGY == "move":
