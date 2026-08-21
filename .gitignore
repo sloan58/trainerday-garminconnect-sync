@@ -1,5 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
 .venv/
+dist/
+*.egg-info/
+
+# IDE
 .idea/
+
+# Secrets / local state
 .env
 .guploadrc
 .garminconnect

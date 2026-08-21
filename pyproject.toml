@@ -1,0 +1,29 @@
+[project]
+name = "trainerday-garminconnect-sync"
+version = "0.1.0"
+description = "Sync TrainerDay .tcx activities from Dropbox to Garmin Connect"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "dropbox>=12.0.2",
+    # garminconnect 0.3.x removed `Garmin.garth` (used by main.py to dump
+    # tokens), so stay on the 0.2.x line until the token handling is ported.
+    "garminconnect>=0.2.26,<0.3",
+    "garth>=0.5.2,<0.6",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.3",
+]
+
+[project.scripts]
+trainerday-garmin-sync = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Flat layout: the app is the single top-level module main.py
+include = ["main.py"]
+
+[tool.uv]
+package = true
