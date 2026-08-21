@@ -18,14 +18,16 @@ After uploading, it either **moves** or **deletes** the files from Dropbox, depe
 7. [Usage](#usage)  
 8. [How It Works](#how-it-works)  
 9. [Troubleshooting](#troubleshooting)  
-10. [Scheduling a Cron Job](#scheduling-a-cron-job)
+10. [Scheduling a Cron Job](#scheduling-a-cron-job)  
+11. [Managing Dependencies](#managing-dependencies)
 
 ---
 
 ## Requirements
 
-- **Python 3.7+** (Tested on Python 3.12, but 3.7 or later should work.)
-- **Pip** or similar package manager.
+- **[uv](https://docs.astral.sh/uv/)** — manages the Python interpreter, virtual environment, and dependencies for this project.  
+  Install it with `curl -LsSf https://astral.sh/uv/install.sh | sh` (or `brew install uv`).  
+  You do **not** need to install Python separately: `uv` will download the version pinned in `.python-version` (3.13) if it isn't already present. The project declares `requires-python = ">=3.10"`.
 - A Dropbox account with a Dropbox App configured for **Scoped Access**.
 - A Garmin Connect account (with valid credentials).
 
@@ -111,14 +113,12 @@ POST_UPLOAD_STRATEGY=move
 
 1. **Clone or Download** this repository to your local machine.
 
-2. **Install Dependencies (create virtual env if desired)**  
+2. **Install Dependencies**  
+   From the project directory, run:
    ```bash
-   pip install -r requirements.txt
+   uv sync
    ```
-   or  
-   ```bash
-   pip install dropbox python-dotenv requests garminconnect garth
-   ```
+   This creates a `.venv/` inside the project, installs the Python version pinned in `.python-version` if needed, and installs the exact dependency versions recorded in `uv.lock`. There is nothing to activate — use `uv run …` to execute commands inside the environment.
 
 3. **Set Environment Variables**  
    - Either create a `.env` file with the values mentioned above.
@@ -142,8 +142,11 @@ POST_UPLOAD_STRATEGY=move
 
 1. **Run the Script**  
    ```bash
-   python main.py
+   uv run trainerday-garmin-sync
    ```
+   (`uv run main.py` does the same thing.) `uv run` automatically keeps the virtual environment in sync with `uv.lock`, so you don't need to re-run `uv sync` after pulling changes.
+
+   > **Note:** the script reads and writes files relative to the current working directory (`.dropbox_token.json`, `.garminconnect/`, `downloads/`, `logs/`), so run it from the project root, or pass `--directory /path/to/project` to `uv run` (see [Scheduling a Cron Job](#scheduling-a-cron-job)).
 
 2. **What Happens**  
    - The script uses your Dropbox **refresh token** to obtain a short-lived access token as needed.  
@@ -210,6 +213,21 @@ To run this script automatically every hour on a Unix-like system, you can set u
    ```
 2. Add a line like this (adjust paths as needed):
    ```bash
-   0 * * * * /usr/bin/python /path/to/your/main.py >> /path/to/logs/cron.log 2>&1
+   0 * * * * $HOME/.local/bin/uv run --directory /path/to/trainerday-garminconnect-sync trainerday-garmin-sync >> /path/to/trainerday-garminconnect-sync/logs/cron.log 2>&1
    ```
-   This runs the script at the top of every hour. The output is appended to `cron.log`, which can help you debug any cron-related issues.
+   This runs the script at the top of every hour. `--directory` makes `uv` `cd` into the project first (so the token, `downloads/`, and `logs/` paths resolve correctly), and `uv run` takes care of the virtual environment. Cron runs with a minimal `PATH`, so use the absolute path to `uv` (`which uv` will show where it lives — `~/.local/bin/uv` for the standalone installer, `/opt/homebrew/bin/uv` for Homebrew on Apple Silicon). The output is appended to `cron.log`, which can help you debug any cron-related issues.
+
+---
+
+## Managing Dependencies
+
+Dependencies are declared in `pyproject.toml` and pinned in `uv.lock`; `requirements.txt` is no longer used.
+
+- **Add a dependency:** `uv add <package>` (updates `pyproject.toml` and `uv.lock`, and installs it).
+- **Remove a dependency:** `uv remove <package>`.
+- **Upgrade everything within the declared ranges:** `uv lock --upgrade && uv sync`.
+- **Upgrade one package:** `uv lock --upgrade-package <package> && uv sync`.
+
+> `garminconnect` is intentionally held to the `0.2.x` line: `0.3.x` removed the `Garmin.garth` attribute that the script uses to save login tokens. Bump the range in `pyproject.toml` once that code path is ported.
+
+Commit `uv.lock` so every machine (and your cron job) runs the same versions.
